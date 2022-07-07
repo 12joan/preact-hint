@@ -20,18 +20,24 @@ export default function Container(props: Props): VNode {
         (node: HTMLDivElement | null) => {
             setContainerElement(node);
             if (containerElement) {
-                containerElement.addEventListener('mouseover', (e) => {
+              const showTooltip = (e: Event) => {
                     if (e.target instanceof Element && e.target.hasAttribute(attribute)) {
                         setContent(e.target.getAttribute(attribute) || '');
                         setTargetBoundingRect(e.target.getBoundingClientRect());
                     }
-                });
-                containerElement.addEventListener('mouseout', (e) => {
+                };
+
+                const hideTooltip = (e: Event) => {
                     if (e.target instanceof Element && e.target.hasAttribute(attribute)) {
                         setContent('');
                         setTargetBoundingRect(null);
                     }
-                });
+                };
+
+                containerElement.addEventListener('mouseover', showTooltip);
+                containerElement.addEventListener('focusin', showTooltip);
+                containerElement.addEventListener('mouseout', hideTooltip);
+                containerElement.addEventListener('focusout', hideTooltip);
             }
         },
         [containerElement],
