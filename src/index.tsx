@@ -2,12 +2,13 @@ import { h } from 'preact';
 import type { ComponentChild, VNode } from 'preact';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 
-import './style.css';
+import './style.scss';
 
 interface Props {
     children: ComponentChild | ComponentChild[];
     attribute?: string;
     template?: (content: string) => VNode;
+    placement?: 'top' | 'bottom' | 'left' | 'right';
 }
 
 export default function Container(props: Props): VNode {
@@ -51,6 +52,7 @@ export default function Container(props: Props): VNode {
                     template={props.template}
                     rootBoundingRect={containerElement.getBoundingClientRect()}
                     targetBoundingRect={targetBoundingRect}
+                    placement={props.placement || 'top'}
                 />
             )}
             {props.children}
@@ -63,34 +65,76 @@ interface HintProps {
     template?: (content: string) => VNode;
     rootBoundingRect: ClientRect;
     targetBoundingRect: ClientRect;
+    placement: 'top' | 'bottom' | 'left' | 'right';
 }
 
 function Hint(props: HintProps): VNode {
     const hint = useRef<HTMLSpanElement>(null);
     // Render way off-screen to prevent rubber banding from initial (and unavoidable) render.
-    const [hintWidth, setHintWidth] = useState(10000);
+    const [hintSize, setHintSize] = useState({ width: 10000, height: 10000 });
 
     useEffect(() => {
         if (hint.current) {
-            setHintWidth(hint.current.getBoundingClientRect().width);
+            const boundingRect = hint.current.getBoundingClientRect();
+            setHintSize({ width: boundingRect.width, height: boundingRect.height });
         }
     }, [hint]);
+
+    const centeredX =
+        props.targetBoundingRect.left -
+        props.rootBoundingRect.left -
+        hintSize.width / 2 +
+        props.targetBoundingRect.width / 2;
+
+    const centeredY =
+        props.targetBoundingRect.top -
+        props.rootBoundingRect.top -
+        hintSize.height / 2 +
+        props.targetBoundingRect.height / 2;
+
+    const style = {
+        'top': {
+            bottom:
+                props.rootBoundingRect.height -
+                props.targetBoundingRect.top +
+                props.rootBoundingRect.top +
+                2,
+            left: centeredX,
+        },
+
+        'bottom': {
+            top:
+                props.rootBoundingRect.height +
+                props.targetBoundingRect.bottom -
+                props.rootBoundingRect.bottom +
+                2,
+            left: centeredX,
+        },
+
+        'left': {
+            right:
+                props.rootBoundingRect.width +
+                props.targetBoundingRect.left -
+                props.rootBoundingRect.left +
+                2,
+            top: centeredY,
+        },
+
+        'right': {
+            left:
+                props.rootBoundingRect.width +
+                props.targetBoundingRect.right -
+                props.rootBoundingRect.right +
+                2,
+            top: centeredY,
+        },
+    }[props.placement];
 
     return (
         <div
             class="preact-hint preact-hint__fade-in"
-            style={{
-                bottom:
-                    props.rootBoundingRect.height -
-                    props.targetBoundingRect.top +
-                    props.rootBoundingRect.top +
-                    2,
-                left:
-                    props.targetBoundingRect.left -
-                    props.rootBoundingRect.left -
-                    hintWidth / 2 +
-                    props.targetBoundingRect.width / 2,
-            }}
+            data-placement={props.placement}
+            {...{style}}
         >
             <span class="preact-hint__content" ref={hint}>
                 {props.template ? props.template(props.content) : props.content}
